@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Opinion_on_Quotes.Interfaces;
@@ -28,12 +29,14 @@ namespace Opinion_on_Quotes.Controllers
         }
 
         /// <summary>
-        ///     
+        ///   
+        [Authorize(Roles ="Admin")]
         [HttpGet]
         public IActionResult Create()
         {
             return View(); //show form to add drama
         }
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> Add(DramaDto dramaDto)
         {
@@ -52,6 +55,7 @@ namespace Opinion_on_Quotes.Controllers
         }
 
         // GET: /DramaPage/DeleteConfirmation/5
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<IActionResult> DeleteConfirmation(int id)
         {
@@ -63,6 +67,7 @@ namespace Opinion_on_Quotes.Controllers
             return View(dramaToDelete); // This loads DeleteConfirmation.cshtml
         }
         // POST: /DramaPage/Delete/5
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> Delete(int id)
         {
@@ -76,6 +81,9 @@ namespace Opinion_on_Quotes.Controllers
             return RedirectToAction("List");
         }
 
+
+
+        [Authorize(Roles = "Admin")]
         [HttpGet]
 
         public async Task<IActionResult> Edit(int id)
@@ -87,7 +95,7 @@ namespace Opinion_on_Quotes.Controllers
             }
             return View(dramaToEdit);
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> Update(DramaDto dramaDto)
         {
