@@ -1,0 +1,44 @@
+﻿@model Opinion_on_Quotes.Models.QuoteDto
+<h2>Edit Quote</h2>
+
+<form action="/QuotePage/Update/@Model.quote_id" method="post">
+    <input type="hidden" name="quote_id" value="@Model.quote_id" />
+
+    <div class="form-group">
+        <label for="content">Quote</label>
+        <input name="content" id="content" class="form-control" value="@Model.content" />
+    </div>
+
+    <div class="form-group">
+        <label for="actor">Actor</label>
+        <input name="actor" id="actor" class="form-control" value="@Model.actor" />
+    </div>
+
+    <div class="form-group">
+        <label for="episode">Episode</label>
+        <input name="episode" id="episode" type="number" class="form-control" value="@Model.episode" />
+    </div>
+
+    <div class="form-group">
+        <label for="drama_title">Drama Title</label>
+        <input name="drama_title" id="drama_title" class="form-control" value="@Model.drama_title" />
+    </div>
+
+    <div class="form-group ">
+        <label for="drama_id">Drama</label>
+        <select name="drama_id" id="drama_id" class="form-control">
+            <option value="">-- Select a drama --</option>
+            @foreach (var drama in ViewBag.Dramas)
+            {
+                <option value="@drama.drama_id" selected="@(Model.drama_id == drama.drama_id ? "selected" : null)">
+                    @drama.title
+                </option>
+            }
+        </select>
+    </div>
+    <div class="mt-4">
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a href="/QuotePage/Details/@Model.quote_id" class="btn btn-secondary">Cancel</a>
+    </div>
+    
+</form>

@@ -1,0 +1,28 @@
+﻿@model Opinion_on_Quotes.Models.DramaDto
+
+<h2>Add New Drama</h2>
+
+<form action="/DramaPage/Add" method="post">
+    <div>
+        <label>Title</label>
+        <input name="title" />
+    </div>
+
+    <div>
+        <label>Release Year</label>
+        <input name="release_year" type="number" />
+    </div>
+
+    <div>
+        <label>Genre</label>
+        <input name="genre" />
+    </div>
+
+    <div>
+        <label>Synopsis</label>
+        <textarea name="synopsis"></textarea>
+    </div>
+
+    <button type="submit">Create</button>
+    <a href="/DramaPage/List">Cancel</a>
+</form>

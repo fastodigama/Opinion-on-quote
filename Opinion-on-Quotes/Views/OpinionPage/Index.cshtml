@@ -1,0 +1,54 @@
+﻿@using Opinion_on_Quotes.Models
+@model IEnumerable<Opinion_on_Quotes.Models.QuoteDto>
+
+<h2 class="mb-4">🎭 Express Your Opinion on The Following Quotes</h2>
+
+<table class="table table-striped table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>Quote</th>
+            <th>Author</th>
+            <th>Drama Title</th>
+            <th>Episode</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var quote in Model)
+        {
+            <tr>
+                <td>@quote.content</td>
+                <td>@quote.actor</td>
+                <td>@quote.drama_title</td>
+                <td>@quote.episode</td>
+                <td class="d-flex gap-2">
+                    <a href="/OpinionPage/Create/@quote.quote_id" class="btn btn-info btn-sm">Express Opinion</a>
+                </td>
+            </tr>
+
+            <tr>
+                <td colspan="5">
+                    <div class="bg-light p-3 rounded">
+                        <strong>Opinions:</strong>
+                        <ul class="list-group mt-2">
+                            @{
+                                var comments = ViewBag.QuoteComments[quote.quote_id] as List<CommentDto>;
+                                if (comments != null && comments.Count > 0)
+                                {
+                                    foreach (var comment in comments)
+                                    {
+                                        <li class="list-group-item">@comment.CommentText</li>
+                                    }
+                                }
+                                else
+                                {
+                                    <li class="list-group-item text-muted">No opinions yet.</li>
+                                }
+                            }
+                        </ul>
+                    </div>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

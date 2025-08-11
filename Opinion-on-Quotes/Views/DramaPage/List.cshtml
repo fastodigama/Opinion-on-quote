@@ -1,0 +1,33 @@
+﻿@using Opinion_on_Quotes.Models
+@model IEnumerable<Opinion_on_Quotes.Models.DramaDto>
+
+<h2 class="mb-4">Drama List</h2>
+
+<table class="table table-bordered table-striped table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>Title</th>
+            <th>Year</th>
+            <th>Genre</th>
+            <th>Synopsis</th>
+            <th style="width: 160px;">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var drama in Model)
+        {
+            <tr>
+                <td>@drama.title</td>
+                <td>@drama.release_year</td>
+                <td>@drama.genre</td>
+                <td>@drama.synopsis</td>
+                <td>
+                    <a href="/DramaPage/Edit/@drama.drama_id" class="btn btn-sm btn-warning me-2">Edit</a>
+                    <a href="/DramaPage/DeleteConfirmation/@drama.drama_id" class="btn btn-sm btn-danger">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<a href="/DramaPage/Create" class="btn btn-primary">Add New Drama</a>
