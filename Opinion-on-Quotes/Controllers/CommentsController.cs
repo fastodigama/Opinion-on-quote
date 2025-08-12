@@ -62,26 +62,35 @@ namespace Opinion_on_Quotes.Controllers
         [HttpPut("UpdateComment/{commentId}")]
         public async Task<IActionResult> UpdateComment(int commentId, [FromBody] string updatedText)
         {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); // get logged-in user's ID
-            var response = await _commentService.UpdateComment(commentId, updatedText, userId);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); // logged-in user's ID
 
-                if (response.Status == ServiceResponse.ServiceStatus.NotFound)
-                    return NotFound(response.Messages);
+            var commentDto = new CommentDto
+            {
+                CommentId = commentId,
+                CommentText = updatedText,
+                UserId = userId
+            };
 
-                if (response.Status == ServiceResponse.ServiceStatus.Forbidden)
-                    return Forbid(); // Handle unauthorized update
+            var response = await _commentService.UpdateComment(commentDto);
 
-                if (response.Status == ServiceResponse.ServiceStatus.Error)
-                        return StatusCode(500, response.Messages);
+            if (response.Status == ServiceResponse.ServiceStatus.NotFound)
+                return NotFound(response.Messages);
 
-                return Ok(response);
+            if (response.Status == ServiceResponse.ServiceStatus.Forbidden)
+                return Forbid(); // Unauthorized update
+
+            if (response.Status == ServiceResponse.ServiceStatus.Error)
+                return StatusCode(500, response.Messages);
+
+            return Ok(response);
         }
-            /// <summary>
-            /// Deletes a comment by its ID.
-            /// </summary>
-            /// <param name="commentId">The ID of the comment to delete.</param>
-            /// <returns>A ServiceResponse indicating success or failure.</returns>
-            [HttpDelete("DeleteComment/{commentId}")]
+
+        /// <summary>
+        /// Deletes a comment by its ID.
+        /// </summary>
+        /// <param name="commentId">The ID of the comment to delete.</param>
+        /// <returns>A ServiceResponse indicating success or failure.</returns>
+        [HttpDelete("DeleteComment/{commentId}")]
             public async Task<IActionResult> DeleteComment(int commentId)
             {
              

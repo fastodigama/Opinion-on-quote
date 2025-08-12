@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Opinion_on_Quotes.Interfaces;
@@ -43,6 +44,7 @@ namespace Opinion_on_Quotes.Controllers
             ViewBag.QuoteComments = quoteComments;
             return View(quotes);
         }
+        [Authorize] // Only authenticated users can access this
         [HttpGet]
         public async Task<IActionResult> Create(int id)
         {
@@ -60,7 +62,7 @@ namespace Opinion_on_Quotes.Controllers
             return View(commentFormData);
         }
 
-
+        [Authorize] // Only authenticated users can post comments
         [HttpPost]
         public async Task<IActionResult> Add(CreateCommentDto formData)
         {
@@ -85,6 +87,111 @@ namespace Opinion_on_Quotes.Controllers
                 });
             }
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        /// 
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var response = await _commentService.GetCommentById(id);
+
+            if (response.Status == ServiceResponse.ServiceStatus.NotFound || response.Data == null)
+            {
+                return NotFound();
+            }
+
+            var commentDto = response.Data as CommentDto;
+            if (commentDto == null)
+            {
+                // Handle unexpected case
+                return BadRequest();
+            }
+
+            return View(commentDto);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="quoteDto"></param>
+        /// <returns></returns>
+        /// 
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        public async Task<IActionResult> Update(CommentDto commentDto)
+        {
+            // Get current logged-in user’s ID
+            var userId = _userManager.GetUserId(User);
+
+            // Set the userId in the dto (important for ownership check)
+            commentDto.UserId = userId;
+
+            // Call the updated service method with the DTO
+            ServiceResponse response = await _commentService.UpdateComment(commentDto);
+
+            if (response.Status == ServiceResponse.ServiceStatus.Updated)
+            {
+                return RedirectToAction("Index");
+            }
+            else
+            {
+                return View("Error", new ErrorViewModel() { Errors = response.Messages });
+            }
+        }
+
+
+
+
+        [Authorize]
+        [HttpGet]
+        public async Task<IActionResult> DeleteConfirmation(int id)
+        {
+            var response = await _commentService.GetCommentById(id);
+            if (response.Status == ServiceResponse.ServiceStatus.NotFound)
+            {
+                return NotFound();
+            }
+
+            var commentDto = response.Data as CommentDto;
+            return View(commentDto);
+        }
+
+        [Authorize]
+        [HttpPost]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var userId = _userManager.GetUserId(User);
+            var response = await _commentService.GetCommentById(id);
+
+            if (response.Status == ServiceResponse.ServiceStatus.NotFound)
+            {
+                return NotFound();
+            }
+
+            var commentDto = response.Data as CommentDto;
+            var isOwner = commentDto.UserId == userId;
+            var isAdmin = User.IsInRole("Admin");
+
+            if (!isOwner && !isAdmin)
+            {
+                return Forbid();
+            }
+
+            var deleteResponse = await _commentService.DeleteComment(id, userId);
+
+            if (deleteResponse.Status != ServiceResponse.ServiceStatus.Deleted)
+            {
+                return BadRequest(deleteResponse.Messages);
+            }
+
+            return RedirectToAction("Index");
+        }
+
 
     }
 }

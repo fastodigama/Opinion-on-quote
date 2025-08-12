@@ -36,7 +36,8 @@ namespace Opinion_on_Quotes.Models
 
 
         // Temporarily hardcode
-        public string UserName { get; set; } 
+        public string UserName { get; set; }
+        public string UserId { get; set; } // Needed for ownership check
         public int quote_id { get; set; }
     }
 

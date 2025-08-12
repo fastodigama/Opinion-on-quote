@@ -1,0 +1,19 @@
+﻿@model Opinion_on_Quotes.Models.CommentDto
+
+@{
+    ViewData["Title"] = "Edit Comment";
+}
+
+<h2>Edit Comment</h2>
+
+<form action="/OpinionPage/Update" method="post">
+    <input type="hidden" name="CommentId" value="@Model.CommentId" />
+
+    <div class="mb-3">
+        <label for="CommentText" class="form-label">Comment Text</label>
+        <textarea id="CommentText" name="CommentText" class="form-control" rows="4">@Model.CommentText</textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a href="/OpinionPage/Index" class="btn btn-secondary">Cancel</a>
+</form>

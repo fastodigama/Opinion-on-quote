@@ -34,7 +34,10 @@ namespace Opinion_on_Quotes.Interfaces
         /// <param name="commentId">The ID of the comment to update.</param>
         /// <param name="newText">The new comment text.</param>
         /// <returns>A ServiceResponse indicating success or failure.</returns>
-        Task<ServiceResponse> UpdateComment(int commentId, string newText,string userId);
+        Task<ServiceResponse> UpdateComment(CommentDto commentDto);
+
+
+        Task<ServiceResponse> GetCommentById(int id);
 
 
     }

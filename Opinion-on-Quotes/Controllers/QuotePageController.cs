@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Opinion_on_Quotes.Interfaces;
@@ -49,6 +50,9 @@ namespace Opinion_on_Quotes.Controllers
         /// 
         /// </summary>
         /// <returns></returns>
+        /// 
+
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
@@ -67,6 +71,8 @@ namespace Opinion_on_Quotes.Controllers
         /// </summary>
         /// <param name="quoteDto"></param>
         /// <returns></returns>
+        /// 
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> Update(QuoteDto quoteDto)
         {
@@ -81,6 +87,7 @@ namespace Opinion_on_Quotes.Controllers
                 return View("Error", new ErrorViewModel() { Errors = response.Messages });
             }
         }
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<IActionResult> Create()
         {
@@ -107,6 +114,7 @@ namespace Opinion_on_Quotes.Controllers
         }
 
         // GET: /DramaPage/DeleteConfirmation/5
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<IActionResult> DeleteConfirmation(int id)
         {
@@ -118,6 +126,7 @@ namespace Opinion_on_Quotes.Controllers
             return View(quoteToDelete); // This loads DeleteConfirmation.cshtml
         }
         // POST: /DramaPage/Delete/5
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> Delete(int id)
         {

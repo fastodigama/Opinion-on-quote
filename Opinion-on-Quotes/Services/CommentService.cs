@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Opinion_on_Quotes.Data;
 using Opinion_on_Quotes.Interfaces;
 using Opinion_on_Quotes.Models;
+using static Opinion_on_Quotes.Models.ServiceResponse;
 
 namespace Opinion_on_Quotes.Services
 {
@@ -56,15 +57,16 @@ namespace Opinion_on_Quotes.Services
             foreach (var c in comments)
             {
                 var user = await _userManager.FindByIdAsync(c.UserId);
-                string username = user?.UserName ?? "Anonymous";
+                
 
                 commentDtos.Add(new CommentDto
                 {
                     CommentId = c.CommentId,
                     CommentText = c.CommentText,
                     CreatedAt = c.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss"),
-                    UserName = username,
-                    quote_id = c.quote_id
+                    
+                    quote_id = c.quote_id,
+                    UserId = c.UserId
                 });
             }
 
@@ -85,6 +87,7 @@ namespace Opinion_on_Quotes.Services
         {
             var comments = await _context.Comments
                 .Where(c => c.quote_id == quote_id)
+                
                 .OrderByDescending(c => c.CreatedAt)
                 .ToListAsync();
 
@@ -101,12 +104,48 @@ namespace Opinion_on_Quotes.Services
                     CommentText = comment.CommentText,
                     CreatedAt = comment.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss"),
                     UserName = username,
-                    quote_id = comment.quote_id
+                    quote_id = comment.quote_id,
+                    UserId = comment.UserId
                 });
             }
 
             return commentDtos;
         }
+
+        public async Task<ServiceResponse> GetCommentById(int id)
+        {
+            var comment = await _context.Comments.FindAsync(id);
+
+            if (comment == null)
+            {
+                return new ServiceResponse
+                {
+                    Status = ServiceResponse.ServiceStatus.NotFound,
+                };
+            }
+
+            var user = await _userManager.FindByIdAsync(comment.UserId);
+            string username = user?.UserName ?? "Anonymous";
+
+            var commentDto = new CommentDto
+            {
+                CommentId = comment.CommentId,
+                CommentText = comment.CommentText,
+                UserId = comment.UserId,
+                UserName = username 
+            };
+
+            return new ServiceResponse
+            {
+                Status = ServiceResponse.ServiceStatus.Success,
+                Data = commentDto
+            };
+        }
+
+
+         
+        
+
 
         public async Task<ServiceResponse> DeleteComment(int commentId, string userId)
         {
@@ -141,11 +180,11 @@ namespace Opinion_on_Quotes.Services
         }
 
 
-        public async Task<ServiceResponse> UpdateComment(int commentId, string newText, string userId)
+        public async Task<ServiceResponse> UpdateComment(CommentDto commentDto)
         {
             var response = new ServiceResponse();
 
-            var comment = await _context.Comments.FindAsync(commentId);
+            var comment = await _context.Comments.FindAsync(commentDto.CommentId);
             if (comment == null)
             {
                 response.Status = ServiceResponse.ServiceStatus.NotFound;
@@ -153,30 +192,25 @@ namespace Opinion_on_Quotes.Services
                 return response;
             }
 
-            // Check if user is admin
-            var user = await _userManager.FindByIdAsync(userId);
+            var user = await _userManager.FindByIdAsync(commentDto.UserId);
             var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
-            //  Ownership check
-            if (comment.UserId != userId &&!isAdmin)
+
+            if (comment.UserId != commentDto.UserId && !isAdmin)
             {
                 response.Status = ServiceResponse.ServiceStatus.Forbidden;
                 response.Messages.Add("You are not authorized to update this comment.");
                 return response;
             }
 
-            comment.CommentText = newText;
+            comment.CommentText = commentDto.CommentText;
+            await _context.SaveChangesAsync();
 
-           
-                await _context.SaveChangesAsync();
-                response.Status = ServiceResponse.ServiceStatus.Updated;
-                response.Messages.Add("Comment updated successfully.");
-            
-            
-                          
+            response.Status = ServiceResponse.ServiceStatus.Updated;
+            response.Messages.Add("Comment updated successfully.");
 
             return response;
         }
-      
+
 
     }
 }
