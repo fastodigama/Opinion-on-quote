@@ -7,20 +7,19 @@ using Opinion_on_Quotes.Models;
 
 namespace Opinion_on_Quotes.Services
 {
-    public class QuoteService: IQuoteServices
+    public class QuoteService : IQuoteServices
     {
         private readonly UserManager<IdentityUser> _userManager;
-
         private readonly ApplicationDbContext _context;
-        // dependency injection of database context
+
+        // Inject UserManager and database context
         public QuoteService(UserManager<IdentityUser> userManager, ApplicationDbContext context)
         {
             _userManager = userManager;
             _context = context;
         }
 
-
-
+        // Retrieve all quotes with their associated drama and comments
         public async Task<IEnumerable<QuoteDto>> ListQuotes()
         {
             List<Quote> quotes = await _context.Quotes
@@ -32,8 +31,7 @@ namespace Opinion_on_Quotes.Services
 
             foreach (var quote in quotes)
             {
-                
-
+                // Convert each Quote entity to a QuoteDto
                 quoteDtos.Add(new QuoteDto
                 {
                     quote_id = quote.quote_id,
@@ -41,32 +39,29 @@ namespace Opinion_on_Quotes.Services
                     actor = quote.actor,
                     episode = quote.episode,
                     drama_id = quote.drama_id,
-                    drama_title = quote.Drama?.title,
-                    //comments = commentDtos
+                    drama_title = quote.Drama?.title
                 });
             }
 
             return quoteDtos;
         }
 
-
-
+        // Find a specific quote by ID and include its comments
         public async Task<QuoteDto?> FindQuote(int id)
         {
-
             var quote = await _context.Quotes
-                 .Include(q => q.Comments)
-                 .Include(q => q.Drama)
+                .Include(q => q.Comments)
+                .Include(q => q.Drama)
                 .FirstOrDefaultAsync(c => c.quote_id == id);
 
-            // no Quote found
             if (quote == null)
             {
-                return null;
+                return null; // Quote not found
             }
 
             List<CommentDto> commentDtos = new List<CommentDto>();
 
+            // Convert each comment to CommentDto
             foreach (var comment in quote.Comments)
             {
                 var user = await _userManager.FindByIdAsync(comment.UserId);
@@ -81,7 +76,8 @@ namespace Opinion_on_Quotes.Services
                     quote_id = comment.quote_id
                 });
             }
-            // create an instance of QuoteDto
+
+            // Convert Quote entity to QuoteDto
             QuoteDto QuoteDtos = new QuoteDto()
             {
                 quote_id = quote.quote_id,
@@ -89,23 +85,20 @@ namespace Opinion_on_Quotes.Services
                 actor = quote.actor,
                 episode = quote.episode,
                 drama_id = quote.drama_id,
-               
                 drama_title = quote.Drama?.title,
-                
                 comments = commentDtos
             };
-            return QuoteDtos;
 
+            return QuoteDtos;
         }
 
-
+        // Update an existing quote
         public async Task<ServiceResponse> UpdateQuote(QuoteDto QuoteDto)
         {
             ServiceResponse serviceResponse = new();
 
-            var drama = await _context.Dramas.FindAsync(QuoteDto.drama_id);
-
-            var quoteToUpdate = await _context.Quotes.FindAsync(QuoteDto.quote_id);
+            var drama = await _context.Dramas.FindAsync(QuoteDto.drama_id); // Validate drama exists
+            var quoteToUpdate = await _context.Quotes.FindAsync(QuoteDto.quote_id); // Find quote
 
             if (quoteToUpdate == null)
             {
@@ -121,18 +114,15 @@ namespace Opinion_on_Quotes.Services
                 return serviceResponse;
             }
 
-
-            //quoteToUpdate.quote_id = QuoteDto.quote_id;
-                quoteToUpdate.content = QuoteDto.content;
-                quoteToUpdate.actor = QuoteDto.actor;
-                quoteToUpdate.episode = QuoteDto.episode;
-               quoteToUpdate.Drama = drama;
-          
+            // Update quote fields
+            quoteToUpdate.content = QuoteDto.content;
+            quoteToUpdate.actor = QuoteDto.actor;
+            quoteToUpdate.episode = QuoteDto.episode;
+            quoteToUpdate.Drama = drama;
 
             try
             {
-                // SQL Equivalent: Update Quotes set ... where QuoteId={id}
-                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync(); // Save changes
                 serviceResponse.Status = ServiceResponse.ServiceStatus.Updated;
             }
             catch (DbUpdateConcurrencyException)
@@ -142,17 +132,15 @@ namespace Opinion_on_Quotes.Services
                 return serviceResponse;
             }
 
-            //serviceResponse.Status = ServiceResponse.ServiceStatus.Updated;
             return serviceResponse;
         }
 
-
+        // Add a new quote to the database
         public async Task<ServiceResponse> AddQuote(QuoteDto QuoteDto)
         {
             ServiceResponse serviceResponse = new();
 
-            var drama = await _context.Dramas.FindAsync(QuoteDto.drama_id);
-
+            var drama = await _context.Dramas.FindAsync(QuoteDto.drama_id); // Validate drama exists
 
             if (drama == null)
             {
@@ -161,8 +149,7 @@ namespace Opinion_on_Quotes.Services
                 return serviceResponse;
             }
 
-
-            // Create instance of Quote
+            // Create new Quote entity
             Quote Quote = new Quote()
             {
                 quote_id = QuoteDto.quote_id,
@@ -171,12 +158,12 @@ namespace Opinion_on_Quotes.Services
                 episode = QuoteDto.episode,
                 Drama = drama
             };
-            // SQL Equivalent: Insert into Quote (..) values (..)
 
             try
             {
-                _context.Quotes.Add(Quote);
-                var rows = await _context.SaveChangesAsync();
+                _context.Quotes.Add(Quote); // Add to context
+                var rows = await _context.SaveChangesAsync(); // Save changes
+
                 if (rows > 0)
                 {
                     serviceResponse.Status = ServiceResponse.ServiceStatus.Created;
@@ -199,18 +186,16 @@ namespace Opinion_on_Quotes.Services
                 }
             }
 
-
-            //serviceResponse.Status = ServiceResponse.ServiceStatus.Created;
-            //serviceResponse.CreatedId = Quote.quote_id;
             return serviceResponse;
         }
 
-
+        // Delete a quote by ID
         public async Task<ServiceResponse> DeleteQuote(int id)
         {
             ServiceResponse response = new();
-            // Quote must exist in the first place
-            var Quote = await _context.Quotes.FindAsync(id);
+
+            var Quote = await _context.Quotes.FindAsync(id); // Find quote
+
             if (Quote == null)
             {
                 response.Status = ServiceResponse.ServiceStatus.NotFound;
@@ -220,9 +205,8 @@ namespace Opinion_on_Quotes.Services
 
             try
             {
-                _context.Quotes.Remove(Quote);
-                await _context.SaveChangesAsync();
-
+                _context.Quotes.Remove(Quote); // Remove quote
+                await _context.SaveChangesAsync(); // Save changes
             }
             catch (Exception ex)
             {
@@ -232,36 +216,34 @@ namespace Opinion_on_Quotes.Services
             }
 
             response.Status = ServiceResponse.ServiceStatus.Deleted;
-
             return response;
-
         }
+
+        // List all quotes associated with a specific drama
         public async Task<ServiceResponse> ListQuotesForDrama(int id)
         {
             ServiceResponse response = new();
 
             List<Quote> Quotes = await _context.Quotes
                 .Include(q => q.Drama)
-               .Where(q => q.drama_id == id)
+                .Where(q => q.drama_id == id)
                 .ToListAsync();
 
-            // empty list of data transfer object CategoryDto
             List<QuoteDto> QuoteDtos = new List<QuoteDto>();
-            // foreach Order Item record in database
+
             foreach (Quote Quote in Quotes)
             {
-                // create new instance of CategoryDto, add to list
+                // Convert each Quote entity to QuoteDto
                 QuoteDtos.Add(new QuoteDto()
                 {
                     quote_id = Quote.quote_id,
                     content = Quote.content,
                     actor = Quote.actor,
                     episode = Quote.episode,
-                    
-                    drama_id=Quote.drama_id
+                    drama_id = Quote.drama_id
                 });
             }
-            // If no quotes found
+
             if (!QuoteDtos.Any())
             {
                 response.Status = ServiceResponse.ServiceStatus.NotFound;
@@ -269,13 +251,10 @@ namespace Opinion_on_Quotes.Services
                 return response;
             }
 
-            // Wrap the result in the response object
             response.Status = ServiceResponse.ServiceStatus.Success;
             response.Data = QuoteDtos;
 
             return response;
-
-
         }
     }
-    }
+}

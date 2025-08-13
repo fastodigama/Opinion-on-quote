@@ -6,54 +6,50 @@ using System;
 
 namespace Opinion_on_Quotes.Services
 {
-    public class DramaService: IDramaServices
+    public class DramaService : IDramaServices
     {
         private readonly ApplicationDbContext _context;
-        // dependency injection of database context
+
+        // Inject the database context
         public DramaService(ApplicationDbContext context)
         {
             _context = context;
         }
 
-
+        // Retrieve all dramas from the database
         public async Task<IEnumerable<DramaDto>> ListDramas()
         {
-            // all dramas
-            List<Drama> dramas = await _context.Dramas
-                .ToListAsync();
-            // empty list of data transfer object DramaDto
-            List<DramaDto> DramaDtos = new List<DramaDto>();
-            // foreach drama record in database
+            List<Drama> dramas = await _context.Dramas.ToListAsync(); // Fetch all drama records
+            List<DramaDto> DramaDtos = new List<DramaDto>(); // Prepare DTO list
+
             foreach (Drama Drama in dramas)
             {
-                // create new instance of DramaDto, add to list
+                // Convert each Drama entity to a DramaDto
                 DramaDtos.Add(new DramaDto()
                 {
                     drama_id = Drama.drama_id,
                     title = Drama.title,
                     release_year = Drama.release_year,
                     genre = Drama.genre,
-                    synopsis=Drama.synopsis
+                    synopsis = Drama.synopsis
                 });
             }
-            // return DramaDtos
-            return DramaDtos;
 
+            return DramaDtos; // Return list of DTOs
         }
 
-
+        // Find a specific drama by ID
         public async Task<DramaDto?> FindDrama(int id)
         {
-            
             var drama = await _context.Dramas
-                .FirstOrDefaultAsync(c => c.drama_id == id);
+                .FirstOrDefaultAsync(c => c.drama_id == id); // Search for drama
 
-            // no drama found
             if (drama == null)
             {
-                return null;
+                return null; // Drama not found
             }
-            // create an instance of DramaDto
+
+            // Convert to DTO and return
             DramaDto DramaDtos = new DramaDto()
             {
                 drama_id = drama.drama_id,
@@ -63,30 +59,31 @@ namespace Opinion_on_Quotes.Services
                 synopsis = drama.synopsis
             };
             return DramaDtos;
-
         }
 
-
+        // Update an existing drama
         public async Task<ServiceResponse> UpdateDrama(DramaDto DramaDto)
         {
             ServiceResponse serviceResponse = new();
 
-            var dramaToUpdate = await _context.Dramas.FindAsync(DramaDto.drama_id);
+            var dramaToUpdate = await _context.Dramas.FindAsync(DramaDto.drama_id); // Find drama by ID
 
-            if (dramaToUpdate == null){
+            if (dramaToUpdate == null)
+            {
                 serviceResponse.Status = ServiceResponse.ServiceStatus.NotFound;
                 serviceResponse.Messages.Add($"Drama with ID {DramaDto.drama_id} not found.");
                 return serviceResponse;
             }
 
-            // fields to update
+            // Update fields
             dramaToUpdate.title = DramaDto.title;
             dramaToUpdate.release_year = DramaDto.release_year;
             dramaToUpdate.genre = DramaDto.genre;
             dramaToUpdate.synopsis = DramaDto.synopsis;
+
             try
             {
-                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync(); // Save changes
                 serviceResponse.Status = ServiceResponse.ServiceStatus.Updated;
             }
             catch (DbUpdateConcurrencyException)
@@ -96,17 +93,15 @@ namespace Opinion_on_Quotes.Services
                 return serviceResponse;
             }
 
-            //serviceResponse.Status = ServiceResponse.ServiceStatus.Updated;
             return serviceResponse;
         }
 
-
+        // Add a new drama to the database
         public async Task<ServiceResponse> AddDrama(DramaDto DramaDto)
         {
             ServiceResponse serviceResponse = new();
 
-
-            // Create instance of Drama
+            // Create new Drama entity
             Drama drama = new Drama()
             {
                 drama_id = DramaDto.drama_id,
@@ -115,12 +110,12 @@ namespace Opinion_on_Quotes.Services
                 genre = DramaDto.genre,
                 synopsis = DramaDto.synopsis
             };
-            // SQL Equivalent: Insert into Drama (..) values (..)
 
             try
             {
-                _context.Dramas.Add(drama);
-                var rows=await _context.SaveChangesAsync();
+                _context.Dramas.Add(drama); // Add to context
+                var rows = await _context.SaveChangesAsync(); // Save changes
+
                 if (rows > 0)
                 {
                     serviceResponse.Status = ServiceResponse.ServiceStatus.Created;
@@ -138,22 +133,20 @@ namespace Opinion_on_Quotes.Services
                 serviceResponse.Messages.Add("There was an error adding the Drama.");
                 if (ex.InnerException != null)
                 {
-                    serviceResponse.Messages.Add(ex.InnerException.Message);
+                    serviceResponse.Messages.Add(ex.InnerException.Message); // Include inner exception message
                 }
             }
 
-
-            //serviceResponse.Status = ServiceResponse.ServiceStatus.Created;
-            //serviceResponse.CreatedId = drama.drama_id;
             return serviceResponse;
         }
 
-
+        // Delete a drama by ID
         public async Task<ServiceResponse> DeleteDrama(int id)
         {
             ServiceResponse response = new();
-            // Drama must exist in the first place
-            var Drama = await _context.Dramas.FindAsync(id);
+
+            var Drama = await _context.Dramas.FindAsync(id); // Find drama
+
             if (Drama == null)
             {
                 response.Status = ServiceResponse.ServiceStatus.NotFound;
@@ -163,9 +156,8 @@ namespace Opinion_on_Quotes.Services
 
             try
             {
-                _context.Dramas.Remove(Drama);
-                await _context.SaveChangesAsync();
-
+                _context.Dramas.Remove(Drama); // Remove drama
+                await _context.SaveChangesAsync(); // Save changes
             }
             catch (Exception ex)
             {
@@ -175,10 +167,7 @@ namespace Opinion_on_Quotes.Services
             }
 
             response.Status = ServiceResponse.ServiceStatus.Deleted;
-
             return response;
-
-        }
-
         }
     }
+}

@@ -10,20 +10,21 @@ namespace Opinion_on_Quotes.Services
     public class CommentService : ICommentService
     {
         private readonly UserManager<IdentityUser> _userManager;
-
         private readonly ApplicationDbContext _context;
-        // dependency injection of database context
+
+        // Inject UserManager and database context
         public CommentService(UserManager<IdentityUser> userManager, ApplicationDbContext context)
         {
             _userManager = userManager;
             _context = context;
         }
 
-
+        // Add a new comment to a quote
         public async Task<ServiceResponse> AddComment(CreateCommentDto createCommentDto, string userId)
         {
             var response = new ServiceResponse();
 
+            // Check if the quote exists
             var quote = await _context.Quotes.FindAsync(createCommentDto.quote_id);
             if (quote == null)
             {
@@ -32,6 +33,7 @@ namespace Opinion_on_Quotes.Services
                 return response;
             }
 
+            // Create and save the new comment
             var comment = new Comment
             {
                 CommentText = createCommentDto.CommentText,
@@ -47,8 +49,8 @@ namespace Opinion_on_Quotes.Services
             response.Status = ServiceResponse.ServiceStatus.Created;
             response.Messages.Add("Comment added successfully.");
 
+            // Prepare list of comments for the quote
             var commentDtos = new List<CommentDto>();
-
             var comments = await _context.Comments
                 .Where(c => c.quote_id == quote.quote_id)
                 .OrderByDescending(c => c.CreatedAt)
@@ -57,19 +59,18 @@ namespace Opinion_on_Quotes.Services
             foreach (var c in comments)
             {
                 var user = await _userManager.FindByIdAsync(c.UserId);
-                
 
                 commentDtos.Add(new CommentDto
                 {
                     CommentId = c.CommentId,
                     CommentText = c.CommentText,
                     CreatedAt = c.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss"),
-                    
                     quote_id = c.quote_id,
                     UserId = c.UserId
                 });
             }
 
+            // Attach quote and comments to response
             response.QuoteData = new QuoteDto
             {
                 quote_id = quote.quote_id,
@@ -83,11 +84,11 @@ namespace Opinion_on_Quotes.Services
             return response;
         }
 
+        // List all comments for a specific quote
         public async Task<IEnumerable<CommentDto>> ListCommentsByQuote(int quote_id)
         {
             var comments = await _context.Comments
                 .Where(c => c.quote_id == quote_id)
-                
                 .OrderByDescending(c => c.CreatedAt)
                 .ToListAsync();
 
@@ -112,6 +113,7 @@ namespace Opinion_on_Quotes.Services
             return commentDtos;
         }
 
+        // Retrieve a comment by its ID
         public async Task<ServiceResponse> GetCommentById(int id)
         {
             var comment = await _context.Comments.FindAsync(id);
@@ -132,7 +134,7 @@ namespace Opinion_on_Quotes.Services
                 CommentId = comment.CommentId,
                 CommentText = comment.CommentText,
                 UserId = comment.UserId,
-                UserName = username 
+                UserName = username
             };
 
             return new ServiceResponse
@@ -142,11 +144,7 @@ namespace Opinion_on_Quotes.Services
             };
         }
 
-
-         
-        
-
-
+        // Delete a comment if user is owner or admin
         public async Task<ServiceResponse> DeleteComment(int commentId, string userId)
         {
             var response = new ServiceResponse();
@@ -163,7 +161,7 @@ namespace Opinion_on_Quotes.Services
             var user = await _userManager.FindByIdAsync(userId);
             var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
 
-            //  Ownership check
+            // Check ownership or admin rights
             if (comment.UserId != userId && !isAdmin)
             {
                 response.Status = ServiceResponse.ServiceStatus.Forbidden;
@@ -171,6 +169,7 @@ namespace Opinion_on_Quotes.Services
                 return response;
             }
 
+            // Remove comment from database
             _context.Comments.Remove(comment);
             await _context.SaveChangesAsync();
 
@@ -179,7 +178,7 @@ namespace Opinion_on_Quotes.Services
             return response;
         }
 
-
+        // Update a comment if user is owner or admin
         public async Task<ServiceResponse> UpdateComment(CommentDto commentDto)
         {
             var response = new ServiceResponse();
@@ -195,6 +194,7 @@ namespace Opinion_on_Quotes.Services
             var user = await _userManager.FindByIdAsync(commentDto.UserId);
             var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
 
+            // Check ownership or admin rights
             if (comment.UserId != commentDto.UserId && !isAdmin)
             {
                 response.Status = ServiceResponse.ServiceStatus.Forbidden;
@@ -202,6 +202,7 @@ namespace Opinion_on_Quotes.Services
                 return response;
             }
 
+            // Update comment text
             comment.CommentText = commentDto.CommentText;
             await _context.SaveChangesAsync();
 
@@ -210,7 +211,5 @@ namespace Opinion_on_Quotes.Services
 
             return response;
         }
-
-
     }
 }

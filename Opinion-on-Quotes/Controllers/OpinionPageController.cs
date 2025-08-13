@@ -10,190 +10,192 @@ namespace Opinion_on_Quotes.Controllers
 {
     public class OpinionPageController : Controller
     {
-
         private readonly ICommentService _commentService;
         private readonly IQuoteServices _quoteService; 
         private readonly UserManager<IdentityUser> _userManager;
 
+        /// <summary>
+        /// Initializes the controller with required services.
+        /// </summary>
         public OpinionPageController(ICommentService commentService, IQuoteServices quoteService, UserManager<IdentityUser> userManager)
         {
-            _commentService = commentService;
-            _quoteService = quoteService;
-            _userManager = userManager;
+            _commentService = commentService; // Inject comment service
+            _quoteService = quoteService;     // Inject quote service
+            _userManager = userManager;       // Inject user manager
         }
+
+        /// <summary>
+        /// Displays all quotes along with their associated comments.
+        /// </summary>
+        /// <returns>View with quotes and comments.</returns>
         public async Task<IActionResult> Index()
         {
-           var quotes = await _quoteService.ListQuotes();
+            var quotes = await _quoteService.ListQuotes(); // Fetch all quotes
 
-            // Create a dictionary: quote_id → list of comments
-            var quoteComments = new Dictionary<int, List<CommentDto>>();
+            var quoteComments = new Dictionary<int, List<CommentDto>>(); // Map quote ID to comments
             foreach (var quote in quotes) {
-                // For each quote, fetch its comments
-                var comments = await _commentService.ListCommentsByQuote(quote.quote_id);
-                if (comments != null && comments.Any())
-                {
-                    // If comments exist, convert them to a list and store in the dictionary
-                    quoteComments[quote.quote_id] = comments.ToList();
-                }
-                else
-                {
-                    quoteComments[quote.quote_id] = new List<CommentDto>();
-                }
+                var comments = await _commentService.ListCommentsByQuote(quote.quote_id); // Fetch comments for quote
+                quoteComments[quote.quote_id] = comments?.ToList() ?? new List<CommentDto>(); // Store comments or empty list
             }
-            // Pass the quotes and their comments to the view
-            ViewBag.QuoteComments = quoteComments;
-            return View(quotes);
+
+            ViewBag.QuoteComments = quoteComments; // Pass comments to view
+            return View(quotes); // Show quotes
         }
-        [Authorize] // Only authenticated users can access this
+
+        /// <summary>
+        /// Displays the form to create a comment for a specific quote.
+        /// </summary>
+        /// <param name="id">Quote ID.</param>
+        /// <returns>View with comment form.</returns>
+        [Authorize]
         [HttpGet]
         public async Task<IActionResult> Create(int id)
         {
-            var quote =  await _quoteService.FindQuote(id);
-            ViewBag.QuoteText = quote.content;
+            var quote = await _quoteService.FindQuote(id); // Find quote by ID
+            ViewBag.QuoteText = quote.content; // Show quote content in view
 
-            // Set up the form with the quote ID from the URL
             var commentFormData = new CreateCommentDto
             {
-                quote_id = id // This tells the form which quote the comment is for, it came from the url
+                quote_id = id // Set quote ID in form
             };
 
-
-            // Show the form to the user
-            return View(commentFormData);
+            return View(commentFormData); // Show comment form
         }
 
-        [Authorize] // Only authenticated users can post comments
+        /// <summary>
+        /// Handles submission of a new comment.
+        /// </summary>
+        /// <param name="formData">Comment data.</param>
+        /// <returns>Redirects to index or shows error.</returns>
+        [Authorize]
         [HttpPost]
         public async Task<IActionResult> Add(CreateCommentDto formData)
         {
             try
             {
-                var userId = _userManager.GetUserId(User);
-                var response = await _commentService.AddComment(formData, userId);
+                var userId = _userManager.GetUserId(User); // Get current user ID
+                var response = await _commentService.AddComment(formData, userId); // Add comment
 
                 if (response.Status == ServiceResponse.ServiceStatus.Created)
                 {
-                    return RedirectToAction("Index");
+                    return RedirectToAction("Index"); // Success: go to index
                 }
 
-                return View("Error", new ErrorViewModel { Errors = response.Messages });
+                return View("Error", new ErrorViewModel { Errors = response.Messages }); // Failure: show error
             }
             catch (Exception ex)
             {
-                // Log the error if needed
                 return View("Error", new ErrorViewModel
                 {
-                    Errors = new List<string> { ex.Message, ex.StackTrace }
+                    Errors = new List<string> { ex.Message, ex.StackTrace } // Show exception details
                 });
             }
         }
 
         /// <summary>
-        /// 
+        /// Displays the form to edit a comment.
+        /// Only accessible by Admins.
         /// </summary>
-        /// <returns></returns>
-        /// 
-
+        /// <param name="id">Comment ID.</param>
+        /// <returns>View with comment data or error.</returns>
         [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
-            var response = await _commentService.GetCommentById(id);
+            var response = await _commentService.GetCommentById(id); // Fetch comment
 
             if (response.Status == ServiceResponse.ServiceStatus.NotFound || response.Data == null)
             {
-                return NotFound();
+                return NotFound(); // Comment not found
             }
 
             var commentDto = response.Data as CommentDto;
             if (commentDto == null)
             {
-                // Handle unexpected case
-                return BadRequest();
+                return BadRequest(); // Invalid data
             }
 
-            return View(commentDto);
+            return View(commentDto); // Show edit form
         }
 
         /// <summary>
-        /// 
+        /// Handles submission of updated comment data.
+        /// Only accessible by Admins.
         /// </summary>
-        /// <param name="quoteDto"></param>
-        /// <returns></returns>
-        /// 
+        /// <param name="commentDto">Updated comment data.</param>
+        /// <returns>Redirects to index or shows error.</returns>
         [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> Update(CommentDto commentDto)
         {
-            // Get current logged-in user’s ID
-            var userId = _userManager.GetUserId(User);
+            var userId = _userManager.GetUserId(User); // Get current user ID
+            commentDto.UserId = userId; // Set user ID in DTO
 
-            // Set the userId in the dto (important for ownership check)
-            commentDto.UserId = userId;
-
-            // Call the updated service method with the DTO
-            ServiceResponse response = await _commentService.UpdateComment(commentDto);
+            var response = await _commentService.UpdateComment(commentDto); // Update comment
 
             if (response.Status == ServiceResponse.ServiceStatus.Updated)
             {
-                return RedirectToAction("Index");
+                return RedirectToAction("Index"); // Success: go to index
             }
             else
             {
-                return View("Error", new ErrorViewModel() { Errors = response.Messages });
+                return View("Error", new ErrorViewModel() { Errors = response.Messages }); // Failure: show error
             }
         }
 
-
-
-
+        /// <summary>
+        /// Displays confirmation view before deleting a comment.
+        /// </summary>
+        /// <param name="id">Comment ID.</param>
+        /// <returns>View with comment data or error.</returns>
         [Authorize]
         [HttpGet]
         public async Task<IActionResult> DeleteConfirmation(int id)
         {
-            var response = await _commentService.GetCommentById(id);
+            var response = await _commentService.GetCommentById(id); // Fetch comment
             if (response.Status == ServiceResponse.ServiceStatus.NotFound)
             {
-                return NotFound();
+                return NotFound(); // Comment not found
             }
 
             var commentDto = response.Data as CommentDto;
-            return View(commentDto);
+            return View(commentDto); // Show confirmation view
         }
 
+        /// <summary>
+        /// Deletes a comment if the user is owner or Admin.
+        /// </summary>
+        /// <param name="id">Comment ID.</param>
+        /// <returns>Redirects to index or returns error.</returns>
         [Authorize]
         [HttpPost]
         public async Task<IActionResult> Delete(int id)
         {
-            var userId = _userManager.GetUserId(User);
-            var response = await _commentService.GetCommentById(id);
+            var userId = _userManager.GetUserId(User); // Get current user ID
+            var response = await _commentService.GetCommentById(id); // Fetch comment
 
             if (response.Status == ServiceResponse.ServiceStatus.NotFound)
             {
-                return NotFound();
+                return NotFound(); // Comment not found
             }
 
             var commentDto = response.Data as CommentDto;
-            var isOwner = commentDto.UserId == userId;
-            var isAdmin = User.IsInRole("Admin");
+            var isOwner = commentDto.UserId == userId; // Check ownership
+            var isAdmin = User.IsInRole("Admin"); // Check admin role
 
             if (!isOwner && !isAdmin)
             {
-                return Forbid();
+                return Forbid(); // Not authorized
             }
 
-            var deleteResponse = await _commentService.DeleteComment(id, userId);
+            var deleteResponse = await _commentService.DeleteComment(id, userId); // Delete comment
 
             if (deleteResponse.Status != ServiceResponse.ServiceStatus.Deleted)
             {
-                return BadRequest(deleteResponse.Messages);
+                return BadRequest(deleteResponse.Messages); // Deletion failed
             }
 
-            return RedirectToAction("Index");
+            return RedirectToAction("Index"); // Success: go to index
         }
-
-
     }
 }
-    
-
